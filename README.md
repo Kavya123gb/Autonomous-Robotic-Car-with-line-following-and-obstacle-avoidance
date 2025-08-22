@@ -24,17 +24,5 @@ It combines line following and obstacle sensing into one compact Arduino-based s
 2. The ultrasonic sensor checks distance ahead.  
    - If obstacle < set distance → car stops, moves back, turns, and continues.  
 3. The motor driver (L298N) controls both motors for forward, backward, and turning movements.
-| Component             | Arduino Pin |
-| --------------------- | ----------- |
-| Left IR Sensor        | A0 (Analog) |
-| Right IR Sensor       | A1 (Analog) |
-| Ultrasonic TRIG       | D6          |
-| Ultrasonic ECHO       | D7          |
-| L298N ENA (Left PWM)  | D5 (PWM)    |
-| L298N IN1 (Left)      | D2          |
-| L298N IN2 (Left)      | D3          |
-| L298N ENB (Right PWM) | D10 (PWM)   |
-| L298N IN3 (Right)     | D11         |
-| L298N IN4 (Right)     | D12         |
 
 
