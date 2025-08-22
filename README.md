@@ -1,5 +1,4 @@
-# project-1
-1)Autonomous Robotic Car with line following and obstacle avoidance  
+Autonomous Robotic Car with line following and obstacle avoidance  
 📖 Overview
 This project is a simple **robotic car** that follows a black line using IR sensors and avoids obstacles using an ultrasonic sensor.  
 It combines line following and obstacle sensing into one compact Arduino-based system.  
