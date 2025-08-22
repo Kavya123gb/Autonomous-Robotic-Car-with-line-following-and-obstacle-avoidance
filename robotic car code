@@ -1,0 +1,129 @@
+#define IR_LEFT_PIN   A0   // Left IR sensor
+#define IR_RIGHT_PIN  A1   // Right IR sensor
+
+#define US_TRIG_PIN   6    // Ultrasonic TRIG
+#define US_ECHO_PIN   7    // Ultrasonic ECHO
+
+// Left motor
+#define ENA_PIN       5    // PWM pin for speed
+#define IN1_PIN       2
+#define IN2_PIN       3
+
+// Right motor
+#define ENB_PIN       10   // PWM pin for speed
+#define IN3_PIN       11
+#define IN4_PIN       12
+
+// ---------- Parameters ----------
+#define BASE_SPEED       110   // Normal forward speed (0–255)
+#define STEER_BOOST       60   // Extra speed for turning
+#define LINE_THRESHOLD   500   // Adjust based on sensor values
+#define OBSTACLE_CM       15   // Stop if obstacle < 15 cm
+
+#define BACKUP_TIME_MS   400
+#define TURN_TIME_MS     450
+
+// ---------- Functions ----------
+void setMotorLeft(int speed, bool forward) {
+  speed = constrain(speed, 0, 255);
+  digitalWrite(IN1_PIN, forward ? HIGH : LOW);
+  digitalWrite(IN2_PIN, forward ? LOW : HIGH);
+  analogWrite(ENA_PIN, speed);
+}
+
+void setMotorRight(int speed, bool forward) {
+  speed = constrain(speed, 0, 255);
+  digitalWrite(IN3_PIN, forward ? HIGH : LOW);
+  digitalWrite(IN4_PIN, forward ? LOW : HIGH);
+  analogWrite(ENB_PIN, speed);
+}
+
+void motorsStop() {
+  analogWrite(ENA_PIN, 0);
+  analogWrite(ENB_PIN, 0);
+}
+
+long readUltrasonicCM() {
+  digitalWrite(US_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(US_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(US_TRIG_PIN, LOW);
+
+  long duration = pulseIn(US_ECHO_PIN, HIGH, 30000UL); // 30 ms timeout
+  if (duration == 0) return 999;  // No object detected
+  return duration / 58;           // Convert to cm
+}
+
+bool seesBlack(int value) {
+  // For most IR sensors, black reflects less -> lower value
+  return value < LINE_THRESHOLD;
+}
+
+// ---------- Setup ----------
+void setup() {
+  pinMode(IR_LEFT_PIN, INPUT);
+  pinMode(IR_RIGHT_PIN, INPUT);
+
+  pinMode(US_TRIG_PIN, OUTPUT);
+  pinMode(US_ECHO_PIN, INPUT);
+
+  pinMode(ENA_PIN, OUTPUT);
+  pinMode(IN1_PIN, OUTPUT);
+  pinMode(IN2_PIN, OUTPUT);
+
+  pinMode(ENB_PIN, OUTPUT);
+  pinMode(IN3_PIN, OUTPUT);
+  pinMode(IN4_PIN, OUTPUT);
+
+  motorsStop();
+  delay(500);
+}
+
+// ---------- Loop ----------
+void loop() {
+  // Check obstacle
+  long distance = readUltrasonicCM();
+  if (distance <= OBSTACLE_CM) {
+    motorsStop();
+    delay(100);
+
+    // Backup
+    setMotorLeft(100, false);
+    setMotorRight(100, false);
+    delay(BACKUP_TIME_MS);
+
+    // Turn left
+    setMotorLeft(110, true);
+    setMotorRight(110, false);
+    delay(TURN_TIME_MS);
+
+    motorsStop();
+    delay(100);
+    return;
+  }
+
+  // Line following
+  int leftVal = analogRead(IR_LEFT_PIN);
+  int rightVal = analogRead(IR_RIGHT_PIN);
+
+  bool leftBlack = seesBlack(leftVal);
+  bool rightBlack = seesBlack(rightVal);
+
+  if (leftBlack && rightBlack) {
+    // Both on line → forward
+    setMotorLeft(BASE_SPEED, true);
+    setMotorRight(BASE_SPEED, true);
+  } else if (leftBlack && !rightBlack) {
+    // Left sensor on line → turn left
+    setMotorLeft(BASE_SPEED - STEER_BOOST, true);
+    setMotorRight(BASE_SPEED + STEER_BOOST, true);
+  } else if (!leftBlack && rightBlack) {
+    // Right sensor on line → turn right
+    setMotorLeft(BASE_SPEED + STEER_BOOST, true);
+    setMotorRight(BASE_SPEED - STEER_BOOST, true);
+  } else {
+    // No line detected → stop
+    motorsStop();
+  }
+}
